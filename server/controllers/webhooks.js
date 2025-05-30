@@ -55,7 +55,7 @@ export const clerkWebhooks = async(req,res)=>{
 }
 
 const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY)
-export const stripeWebhooks= async()=>{
+export const stripeWebhooks= async(request, response)=>{
  const sig = request.headers['stripe-signature'];
 
   let event;
@@ -75,7 +75,7 @@ export const stripeWebhooks= async()=>{
       const session = await stripeInstance.checkout.sessions.list({
         payment_intent: paymentIntentId
       })
-      const {purchaseId} = session.data[0].metadata;
+      const { purchaseId } = session.data[0].metadata;
 
       const purchaseData = await Purchase.findById(purchaseId)
 
