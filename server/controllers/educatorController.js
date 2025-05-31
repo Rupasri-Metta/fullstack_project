@@ -60,37 +60,46 @@ export const getEducatorCourses = async (req,res)=>{
 //Get Educator Dashboard Data
 
 export const educatorDashboardData = async(req,res)=>{
-     try{
-        const educator = req.auth.userId
-        const courses = await Course.find({educator})
-        const totalCourses = courses.length;
-        const courseIds = courses.map(course=> course._id);
-        const purchases = await Purchase.find({
-            courseId: {$in : courseIds},
-            status:'completed'
-        });
-        const totalEarnings= purchases.reduce((sum,purchase)=>sum+purchase.amount,0)
+  try{
+    const educator = "user_2xgpzpbfybiTOZsPnL7DMpyOPEi";
 
-        // Collect unique enrolled student IDs with their course titles
-        const enrolledStudentsData = [];
-        for(const course of courses){
-            const students = await User.find({
-                _id: {$in: course.enrolledStudents}
-            }, 'name imageUrl');
-            students.forEach(student =>{
-                enrolledStudentsData.push({
-                    courseTitle:course.courseTitle,
-                    student
-                });
-            });
-        }
-        res.json({success:true, dashboardData:{
-            totalEarnings,enrolledStudentsData,totalCourses
-        }})
-     } catch(error){
-          res.json({success: false, message: error.message});
-     }
-}
+    const courses = await Course.find({educator});
+    const totalCourses = courses.length;
+    const courseIds = courses.map(course => course._id);
+
+    const purchases = await Purchase.find({
+      courseId: { $in: courseIds },
+      status: 'completed'
+    });
+
+    const totalEarnings = purchases.reduce((sum, purchase) => sum + purchase.amount, 0);
+    const totalEnrolments = purchases.length;
+
+    // Fetch students via populated Purchase data
+    const populatedPurchases = await Purchase.find({
+      courseId: { $in: courseIds },
+      status: 'completed'
+    }).populate('userId', 'name imageUrl').populate('courseId', 'courseTitle');
+
+    const enrolledStudentsData = populatedPurchases.map(purchase => ({
+      student: purchase.userId,
+      courseTitle: purchase.courseId.courseTitle
+    }));
+
+    res.json({
+      success: true,
+      dashboardData: {
+        totalCourses,
+        totalEarnings,
+        totalEnrolments,
+        enrolledStudentsData
+      }
+    });
+  } catch(error){
+    res.json({success: false, message: error.message});
+  }
+};
+
 
 //Get Enrolled Students Data with Purchase Data
 
